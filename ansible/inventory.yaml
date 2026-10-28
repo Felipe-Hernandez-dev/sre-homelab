@@ -1,0 +1,7 @@
+all:
+  children:
+    nodos_podman:
+      hosts:
+        tf-node-01:  
+          ansible_host: 192.168.78.101
+          ansible_user: root

@@ -1,0 +1,43 @@
+---
+- name: Aprovisionamiento de Motor de Contenedores
+  hosts: nodos_podman
+  tasks:
+    - name: Actualizar caché de repositorios APT
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Instalar dependencias base y Podman
+      ansible.builtin.apt:
+        name:
+          - podman
+          - fuse-overlayfs
+        state: present
+
+    - name: Crear directorio de configuración de contenedores
+      ansible.builtin.file:
+        path: /etc/containers
+        state: directory
+        mode: '0755'    
+
+    - name: Configurar storage.conf para usar fuse-overlayfs sobre ZFS
+      ansible.builtin.copy:
+        dest: /etc/containers/storage.conf
+        content: |
+          [storage]
+          driver = "overlay"
+          runroot = "/run/containers/storage"
+          graphroot = "/var/lib/containers/storage"
+
+          [storage.options.overlay]
+          mount_program = "/usr/bin/fuse-overlayfs"
+        mode: '0644'
+
+    - name: Desplegar contenedor web de prueba (Nginx)
+      containers.podman.podman_container:
+          name: web_test
+          image: docker.io/library/nginx:alpine
+          state: started
+          ports:
+            - "8080:80"
+          restart_policy: always
